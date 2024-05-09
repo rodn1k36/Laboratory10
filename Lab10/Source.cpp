@@ -39,7 +39,7 @@ private:
 	Point P2;
 public:
 	Line(const Point& P1, const Point& P2) : P1(P1), P2(P2) {
-		if (P1.x == P2.x || P1.y == P2.y)
+		if (P1.x == P2.x && P1.y == P2.y)
 			throw 1;
 	}
 	Line(const double k, const double b) {
@@ -60,6 +60,9 @@ public:
 	bool operator!= (const Line& L) const {
 		return !(*this == L);
 	}
+	std::pair<Point, Point> getPoints() {
+		return {P1, P2};
+	}
 };
 
 class Shape {
@@ -67,7 +70,8 @@ public:
 	virtual void Draw() = 0;
 	virtual void Rotate(Point center, double angle) = 0;
 	virtual void Reflex(Point center) = 0;
-	//virtual void Scale() = 0;
+	virtual void Reflex(Line axis) = 0;
+	virtual void Scale(Point center, double coefficient) = 0;
 } *obj[6] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 
 class Polygon : public Shape {
@@ -78,12 +82,12 @@ public:
 	/*Polygon(...) {
 		va_list args;
 	}*/
-	void Reflex(Point center) override {
-		for (int i = 0; i < vertices.size(); ++i) {
-			double deltaX = vertices[i].x - center.x;
-			double deltaY = vertices[i].y - center.y;
-			vertices[i] = Point(center.x - deltaX, center.y - deltaY);
-		}
+	void Draw() override {
+		glColor3f(1, 0, 0);
+		glBegin(GL_POLYGON);
+		for (int i = 0; i < vertices.size(); ++i)
+			glVertex2f(vertices[i].x, vertices[i].y);
+		glEnd();
 	}
 
 	void Rotate(Point center, double angle) override {
@@ -98,12 +102,38 @@ public:
 		}
 	}
 
-	void Draw() override {
-		glColor3f(1, 0, 0);
-		glBegin(GL_POLYGON);
-		for (auto& d : vertices)
-			glVertex2f(d.x, d.y);
-		glEnd();
+	void Reflex(Point center) override {
+		for (int i = 0; i < vertices.size(); ++i) {
+			double deltaX = vertices[i].x - center.x;
+			double deltaY = vertices[i].y - center.y;
+			vertices[i] = Point(center.x - deltaX, center.y - deltaY);
+		}
+	}
+
+	void Reflex(Line axis) override {
+		for (int i = 0; i < vertices.size(); i++) {
+			double x = vertices[i].x;
+			double y = vertices[i].y;
+
+			Point P1(axis.getPoints().first);
+			Point P2(axis.getPoints().second);
+			
+			double A = P2.y - P1.y;
+			double B = P1.x - P2.x;
+			double C = -A * P1.x - B * P1.y;
+
+			double new_x = x - 2 * (A * x + B * y + C) / (A * A + B * B) * A;
+			double new_y = y - 2 * (A * x + B * y + C) / (A * A + B * B) * B;
+
+			vertices[i] = Point(new_x, new_y);
+		}
+	}
+
+	void Scale(Point center, double coefficient) override {
+		for (int i = 0; i < vertices.size(); i++) {
+			vertices[i].x = center.x + (vertices[i].x - center.x) * coefficient;
+			vertices[i].y = center.y + (vertices[i].y - center.y) * coefficient;
+		}
 	}
 
 	size_t verticesCount() {
@@ -159,7 +189,6 @@ private:
 	std::pair<Point, Point> F;
 	double r;
 public:
-	//double angle = 0; // угол поворота фигуры
 	Ellipse(const Point& P1, const Point& P2, double r) : F({ P1, P2 }), r(r) {};
 
 	void Draw() override {
@@ -188,8 +217,13 @@ public:
 		glEnd();
 	}
 
-	void Rotate(Point center = { 0, 0 }, double angle = 0) override {
-		//this->angle += angle;
+	void Rotate(Point center, double angle) override {
+
+		F.first.x -= center.x;
+		F.first.y -= center.y;
+		F.second.x -= center.x;
+		F.second.y -= center.y;
+
 		double s = sin(angle / 180 * 3.15);
 		double c = cos(angle / 180 * 3.15);
 
@@ -202,6 +236,11 @@ public:
 		double ynew_second = F.second.x * s + F.second.y * c;
 		F.second.x = xnew_second;
 		F.second.y = ynew_second;
+
+		F.first.x += center.x;
+		F.first.y += center.y;
+		F.second.x += center.x;
+		F.second.y += center.y;
 	}
 
 	void Reflex(Point center) override {
@@ -212,6 +251,45 @@ public:
 		deltaX = F.second.x - center.x;
 		deltaY = F.second.y - center.y;
 		F.second = Point(center.x - deltaX, center.y - deltaY);
+	}
+
+	void Reflex(Line axis) override {
+		double x = F.first.x;
+		double y = F.first.y;
+
+		Point P1(axis.getPoints().first);
+		Point P2(axis.getPoints().second);
+
+		double A = P2.y - P1.y;
+		double B = P1.x - P2.x;
+		double C = -A * P1.x - B * P1.y;
+
+		double new_x = x - 2 * (A * x + B * y + C) / (A * A + B * B) * A;
+		double new_y = y - 2 * (A * x + B * y + C) / (A * A + B * B) * B;
+
+		F.first = Point(new_x, new_y);
+
+		x = F.second.x;
+		y = F.second.y;
+
+		A = P2.y - P1.y;
+		B = P1.x - P2.x;
+		C = -A * P1.x - B * P1.y;
+
+		new_x = x - 2 * (A * x + B * y + C) / (A * A + B * B) * A;
+		new_y = y - 2 * (A * x + B * y + C) / (A * A + B * B) * B;
+
+		F.second = Point(new_x, new_y);
+	}
+
+	void Scale(Point center, double coefficient) override {
+		F.first.x = center.x + (F.first.x - center.x) * coefficient;
+		F.first.y = center.y + (F.first.y - center.y) * coefficient;
+		
+		F.second.x = center.x + (F.second.x - center.x) * coefficient;
+		F.second.y = center.y + (F.second.y - center.y) * coefficient;
+
+		r *= coefficient;
 	}
 
 	std::pair<Point, Point> focuses() {
@@ -276,7 +354,15 @@ void renderScene() {
 			value = -1;
 		}
 		else if (value == 12) {
-			obj[0]->Reflex({ 0, 0 });
+			obj[0]->Reflex(Point(0,0));
+			value = -1;
+		}
+		else if (value == 13) {
+			obj[0]->Reflex(Line(Point(-30, 0), Point(30, 0)));
+			value = -1;
+		}
+		else if (value == 14) {
+			obj[0]->Scale(Point(0, 0), 0.5);
 			value = -1;
 		}
 	}
@@ -297,11 +383,19 @@ void renderScene() {
 		obj[1]->Draw();
 
 		if (value == 21) {
-			obj[1]->Rotate({ 0,0 }, 15);
+			obj[1]->Rotate({ 0, 0 }, 15);
 			value = -1;
 		}
 		else if (value == 22) {
-			obj[1]->Reflex({ 10, 0 });
+			obj[1]->Reflex(Point(0,0));
+			value = -1;
+		}
+		else if (value == 23) {
+			obj[1]->Reflex(Line(Point(-30, 0), Point(30, 0)));
+			value = -1;
+		}
+		else if (value == 24) {
+			obj[1]->Scale(Point(0,0), 0.7);
 			value = -1;
 		}
 	}
@@ -333,8 +427,8 @@ void createMenu(void) {
 	glutAddMenuEntry("Draw", 20);
 	glutAddMenuEntry("Rotate", 21);
 	glutAddMenuEntry("Reflex point", 22);
-	glutAddMenuEntry("Eccebtricity", 23);
-	glutAddMenuEntry("Center", 24);
+	glutAddMenuEntry("Reflex line", 23);
+	glutAddMenuEntry("Scale", 24);
 
 	submenu_circle_id = glutCreateMenu(menu);
 	glutAddMenuEntry("Draw", 30);
