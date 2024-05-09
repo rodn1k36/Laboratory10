@@ -16,6 +16,7 @@ static int value = 0;
 bool is_create_polygon = false;
 bool is_create_ellypse = false;
 bool is_create_circle = false;
+bool is_create_rectangle = false;
 bool is_create_square = false;
 bool is_create_triangle = false;
 
@@ -78,6 +79,7 @@ class Polygon : public Shape {
 protected:
 	std::vector <Point> vertices;
 public:
+	Polygon() = default;
 	Polygon(std::vector <Point> vertices) : vertices(vertices) { };
 	/*Polygon(...) {
 		va_list args;
@@ -185,19 +187,22 @@ public:
 };
 
 class Ellipse : public Shape {
-private:
+protected:
 	std::pair<Point, Point> F;
 	double r;
 public:
-	Ellipse(const Point& P1, const Point& P2, double r) : F({ P1, P2 }), r(r) {};
+	Ellipse(const Point& P1, const Point& P2, const double r) : F({ P1, P2 }), r(r) {};
 
 	void Draw() override {
 		glColor3f(1, 0, 0);
 		glBegin(GL_POINTS);
 		double x, y;
-		double a = sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)); // big axis
-		double b = sqrt(pow(r / 2, 2) - pow(a, 2)); // small axis
-		double angle = atan(F.second.y / F.second.x);
+		double a = r/2 - sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)); // big axis
+		double b = sqrt(pow(r / 2, 2) - (sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)))); // small axis
+		double angle = 0;
+		if (F.second.x != 0)
+			double angle = atan(F.second.y / F.second.x);
+		
 		if (r < 2 * b)
 			throw 1;
 
@@ -306,6 +311,47 @@ public:
 	} */
 };
 
+class Circle : public Ellipse {
+public:
+	Circle(const Point& center, const double r) : Ellipse(center, center, r) {}
+	double radius() {
+		return r;
+	}
+};
+
+class Rectangle : public Polygon {
+public:
+	Rectangle(const Point& P1, const Point& P2) {
+		Point P3(P1.x, P2.y);
+		Point P4(P2.x, P1.y);
+		vertices = {P1, P3, P2, P4}; // P1 left down point и по часовой
+	}
+
+	Point center() {
+		return Point(vertices[0].x + abs(vertices[3].x - vertices[0].x), vertices[2].y - abs(vertices[2].y - vertices[3].y)); // [0] индекс нижняя точка слева и далее по часовой пронумерованы
+	}
+
+	std::pair<Line, Line> diagonals() {
+		return { Line(vertices[0], vertices[2]), Line(vertices[1], vertices[3]) };
+	}
+};
+
+class Square : public Rectangle {
+public:
+	Square(const Point& P1, const Point& P2) : Rectangle(P1, P2) {
+		if (abs(P1.x - P2.x) != abs(P1.y - P2.y))
+			throw 1;
+	}
+	Circle circumscribedCircle() {
+		
+	}
+};
+
+class Triangle : public Polygon {
+public:
+	Triangle(const Point& P1, const Point& P2, const Point& P3) : Polygon(std::vector <Point> {P1, P2, P3}) {}
+};
+
 void renderScene() {
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -328,7 +374,11 @@ void renderScene() {
 		glEnd();
 		is_create_polygon = false;
 		is_create_ellypse = false;
-
+		is_create_circle = false;
+		is_create_rectangle = false;
+		is_create_square = false;
+		is_create_triangle = false;
+		
 	}
 	//////////////////// POLYGON ////////////////////////////
 	if (value == 10) {
@@ -370,7 +420,7 @@ void renderScene() {
 	if (value == 20) {
 		Point F1(-60, 0);
 		Point F2(60, 0);
-		double r = 140;
+		double r = 40;
 		Ellipse* shape_ellypse = new Ellipse(F1, F2, r); // как удалить?
 		obj[1] = shape_ellypse;
 		is_create_ellypse = true;
@@ -399,7 +449,130 @@ void renderScene() {
 			value = -1;
 		}
 	}
+	/////////////////////////// CIRCLE ////////////////////////////////////
+	if (value == 30) {
+		Point center(0, 0);
+		double r = 60;
+		Circle* shape_circle = new Circle(center, r); // как удалить?
+		obj[2] = shape_circle;
+		is_create_circle = true;
 
+		shape_circle->Draw();
+	}
+
+	else if (is_create_circle) {
+
+		obj[2]->Draw();
+
+		if (value == 31) {
+			obj[2]->Rotate({ 0, 0 }, 15);
+			value = -1;
+		}
+		else if (value == 32) {
+			obj[2]->Reflex(Point(0, 0));
+			value = -1;
+		}
+		else if (value == 33) {
+			obj[2]->Reflex(Line(Point(-30, 0), Point(30, 0)));
+			value = -1;
+		}
+		else if (value == 34) {
+			obj[2]->Scale(Point(0, 0), 0.7);
+			value = -1;
+		}
+	}
+	///////////////////////// RECTANGLE ////////////////////////
+	if (value == 40) {
+		Rectangle* shape_rectangle = new Rectangle(Point(-60,-30), Point(60, 30)); // как удалить?
+		obj[3] = shape_rectangle;
+		is_create_rectangle = true;
+
+		shape_rectangle->Draw();
+	}
+
+	else if (is_create_rectangle) {
+
+		obj[3]->Draw();
+
+		if (value == 41) {
+			obj[3]->Rotate({ 0, 0 }, 15);
+			value = -1;
+		}
+		else if (value == 42) {
+			obj[3]->Reflex(Point(0, 0));
+			value = -1;
+		}
+		else if (value == 43) {
+			obj[3]->Reflex(Line(Point(-30, 0), Point(30, 0)));
+			value = -1;
+		}
+		else if (value == 44) {
+			obj[3]->Scale(Point(0, 0), 0.7);
+			value = -1;
+		}
+	}
+	///////////////////////// SQUARE ////////////////////////////
+
+	if (value == 50) {
+		Square* shape_square = new Square(Point(-30, -30), Point(30, 30)); // как удалить?
+		obj[4] = shape_square;
+		is_create_square = true;
+
+		shape_square->Draw();
+	}
+
+	else if (is_create_square) {
+
+		obj[4]->Draw();
+
+		if (value == 51) {
+			obj[4]->Rotate({ 0, 0 }, 15);
+			value = -1;
+		}
+		else if (value == 52) {
+			obj[4]->Reflex(Point(0, 0));
+			value = -1;
+		}
+		else if (value == 53) {
+			obj[4]->Reflex(Line(Point(-30, 0), Point(30, 0)));
+			value = -1;
+		}
+		else if (value == 54) {
+			obj[4]->Scale(Point(0, 0), 0.7);
+			value = -1;
+		}
+	}
+	//////////////////////////// TRIANGLE //////////////////////
+
+	if (value == 60) {
+		Triangle* shape_triangle = new Triangle(Point(-30, -30), Point(30, -30), Point(0, 30)); // как удалить?
+		obj[5] = shape_triangle;
+		is_create_triangle = true;
+
+		shape_triangle->Draw();
+	}
+
+	else if (is_create_triangle) {
+
+		obj[5]->Draw();
+
+		if (value == 61) {
+			obj[5]->Rotate({ 0, 0 }, 15);
+			value = -1;
+		}
+		else if (value == 62) {
+			obj[5]->Reflex(Point(0, 0));
+			value = -1;
+		}
+		else if (value == 63) {
+			obj[5]->Reflex(Line(Point(-30, 0), Point(30, 0)));
+			value = -1;
+		}
+		else if (value == 64) {
+			obj[5]->Scale(Point(0, 0), 0.7);
+			value = -1;
+		}
+	}
 	glutSwapBuffers();
 }
 ///////////////////////// MENU /////////////////////
@@ -432,26 +605,31 @@ void createMenu(void) {
 
 	submenu_circle_id = glutCreateMenu(menu);
 	glutAddMenuEntry("Draw", 30);
-	glutAddMenuEntry("Radius", 31);
+	glutAddMenuEntry("Rotate", 31);
+	glutAddMenuEntry("Reflex point", 32);
+	glutAddMenuEntry("Reflex line", 33);
+	glutAddMenuEntry("Scale", 34);
 
 	submenu_rectangle_id = glutCreateMenu(menu);
 	glutAddMenuEntry("Draw", 40);
-	glutAddMenuEntry("Center", 41);
-	glutAddMenuEntry("Diagonals", 42);
+	glutAddMenuEntry("Rotate", 41);
+	glutAddMenuEntry("Reflex point", 42);
+	glutAddMenuEntry("Reflex line", 43);
+	glutAddMenuEntry("Scale", 44);
 
 	submenu_square_id = glutCreateMenu(menu);
 	glutAddMenuEntry("Draw", 50);
-	glutAddMenuEntry("Circumscribed Circle", 51);
-	glutAddMenuEntry("Inscribed Circle", 52);
+	glutAddMenuEntry("Rotate", 51);
+	glutAddMenuEntry("Reflex point", 52);
+	glutAddMenuEntry("Reflex line", 53);
+	glutAddMenuEntry("Scale", 54);
 
 	submenu_triangle_id = glutCreateMenu(menu);
 	glutAddMenuEntry("Draw", 60);
-	glutAddMenuEntry("Circumscribed Circle", 61);
-	glutAddMenuEntry("Inscribed Circle", 62);
-	glutAddMenuEntry("Centroid", 63);
-	glutAddMenuEntry("Orthocenter", 64);
-	glutAddMenuEntry("Euler Line", 65);
-	glutAddMenuEntry("Euler Circle", 66);
+	glutAddMenuEntry("Rotate", 61);
+	glutAddMenuEntry("Reflex point", 62);
+	glutAddMenuEntry("Reflex line", 63);
+	glutAddMenuEntry("Scale", 64);
 
 	submenu_shape_id = glutCreateMenu(menu);
 	glutAddSubMenu("Polygon", submenu_polygon_id);
