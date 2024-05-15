@@ -73,6 +73,13 @@ public:
 	virtual void Reflex(Point center) = 0;
 	virtual void Reflex(Line axis) = 0;
 	virtual void Scale(Point center, double coefficient) = 0;
+
+	virtual double perimeter() = 0;
+	virtual double area() = 0;
+	virtual bool operator==(const Shape& another) = 0;
+	virtual bool isCongruentTo(const Shape& another) = 0;
+	//virtual bool isSimilarTo(const Shape& another) = 0;
+
 } *obj[6] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 
 class Polygon : public Shape {
@@ -137,10 +144,104 @@ public:
 			vertices[i].y = center.y + (vertices[i].y - center.y) * coefficient;
 		}
 	}
+///////////////////////////////////////
+	double perimeter() override {
+		double P = 0;
+		for (int i = 0; i < vertices.size() - 1; ++i) {
+			P += sqrt(pow(vertices[i + 1].x - vertices[i].x, 2) + pow(vertices[i + 1].y - vertices[i].y, 2));
+		}
+		
+		P += sqrt(pow(vertices[0].x - vertices[vertices.size() - 1].x, 2) + pow(vertices[0].y - vertices[vertices.size() - 1].y, 2));
 
+		return P;
+	}
+
+	double area() override {
+		int n = vertices.size();
+		double area = 0;
+		// формула Гаусса вычисления площади многоугольника
+		for (int i = 0; i < n; i++) {
+			int j = (i + 1) % n;
+			area += vertices[i].x * vertices[j].y - vertices[j].x * vertices[i].y;
+		}
+		area = std::abs(area) / 2.0;
+		return area;
+	}
+
+	bool operator==(const Shape& another) override {
+		if (dynamic_cast<const Polygon*>(&another) == nullptr) {
+			return false;
+		}
+		else {
+			const Polygon& another_polygon = dynamic_cast<const Polygon&>(another);
+
+			if (this->vertices.size() != another_polygon.vertices.size()) return false;
+
+			for (int i = 0; i < vertices.size(); ++i) {
+				bool is_equal = true;
+				for (int j = 0; j < vertices.size(); ++j) {
+					if (this->vertices[j].x != another_polygon.vertices[(j + i) % this->vertices.size()].x ||
+						this->vertices[j].y != another_polygon.vertices[(j + i) % this->vertices.size()].y) {
+						is_equal = false;
+						break;
+					}
+				}
+				if (is_equal) return true;
+			}
+		}
+		return false;
+	}
+
+	bool isCongruentTo(const Shape& another) override {
+		if (dynamic_cast<const Polygon*>(&another) == nullptr) {
+			return false;
+		}
+		else {
+			const Polygon& another_polygon = dynamic_cast<const Polygon&>(another);
+
+			if (this->vertices.size() != another_polygon.vertices.size()) return false;
+
+			for (int i = 0; i < vertices.size(); ++i) {
+				bool is_equal = true;
+				for (int j = 0; j < vertices.size(); ++j) {
+					if (abs(this->vertices[j].x - this->vertices[(j+1) % this->vertices.size()].x) !=
+						abs(another_polygon.vertices[(j + i) % this->vertices.size()].x - another_polygon.vertices[(j + i + 1) % this->vertices.size()].x) ||
+						abs(this->vertices[j].y - this->vertices[(j + 1) % this->vertices.size()].y) !=
+						abs(another_polygon.vertices[(j + i) % this->vertices.size()].y - another_polygon.vertices[(j + i + 1) % this->vertices.size()].y)) {
+						is_equal = false;
+						break;
+					}
+				}
+				if (is_equal) return true;
+			}
+		}
+		return false;
+	}
+
+	//bool isSimilarTo(const Shape& another) override {
+	//	if (dynamic_cast<const Polygon*>(&another) == nullptr) {
+	//		return false;
+	//	}
+	//	const Polygon& another_polygon = dynamic_cast<const Polygon&>(another);
+
+	//	if (this->vertices.size() != another_polygon.vertices.size()) return false;
+
+	//	for (int i = 0; i < vertices.size(); ++i) {
+	//		bool is_equal = true;
+	//		double simular_k = sqrt(pow(this->vertices[0].x - this->vertices[1].x, 2) + pow(this->vertices[0].y - this->vertices[1].y, 2)) /
+	//			sqrt(pow(another_polygon.vertices[0].x - another_polygon.vertices[1].x, 2) + pow(another_polygon.vertices[0].y - another_polygon.vertices[1].y, 2)); // отношение сторон фигур
+	//		for (int j = 0; j < vertices.size(); ++j) {
+	//			
+	//		}
+	//		if (is_equal) return true;
+	//	}
+	//	
+	//}
+///////////////////////////////////////
 	size_t verticesCount() {
 		return vertices.size();
 	}
+
 	std::vector<Point> getVertices() const {
 		return vertices;
 	}
@@ -201,7 +302,7 @@ public:
 		double b = sqrt(pow(r / 2, 2) - (sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)))); // small axis
 		double angle = 0;
 		if (F.second.x != 0)
-			double angle = atan(F.second.y / F.second.x);
+			angle = atan(F.second.y / F.second.x);
 		
 		if (r < 2 * b)
 			throw 1;
@@ -296,7 +397,43 @@ public:
 
 		r *= coefficient;
 	}
+////////////////////////////////////////
+	double perimeter() override {
+		double a = r / 2 - sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)); // big axis
+		double b = sqrt(pow(r / 2, 2) - (sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)))); // small axis
 
+		return 4 * (3.14 * a * b + pow(a - b, 2)) / (a + b);
+	}
+
+	double area() override {
+		double a = r / 2 - sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)); // big axis
+		double b = sqrt(pow(r / 2, 2) - (sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)))); // small axis
+
+		return 3.14 * a * b;
+	}
+
+	bool operator==(const Shape& another) override {
+		if (dynamic_cast<const Ellipse*>(&another) == nullptr) {
+			return false;
+		}
+		
+		const Ellipse& another_ellipse = dynamic_cast<const Ellipse&>(another);
+
+		if (this->F.first.x == another_ellipse.F.first.x &&
+			this->F.first.y == another_ellipse.F.first.y &&
+			this->F.second.x == another_ellipse.F.second.x &&
+			this->F.second.x == another_ellipse.F.second.x)
+			return true;
+
+		return false;
+
+	}
+
+	bool isCongruentTo(const Shape& another) override {
+		return false;
+	}
+
+///////////////////////////////////////
 	std::pair<Point, Point> focuses() {
 		return { F.first, F.second };
 	}
@@ -342,9 +479,6 @@ public:
 		if (abs(P1.x - P2.x) != abs(P1.y - P2.y))
 			throw 1;
 	}
-	Circle circumscribedCircle() {
-		
-	}
 };
 
 class Triangle : public Polygon {
@@ -382,12 +516,22 @@ void renderScene() {
 	}
 	//////////////////// POLYGON ////////////////////////////
 	if (value == 10) {
-		Point a(-50, -50);
-		Point b(-50, 0);
-		Point c(0, 50);
-		Point d(50, 0);
-		Point e(50, -50);
-		std::vector <Point> points = { a, b, c, d, e };
+		std::vector <Point> points;
+		int count = 0;
+		char off = ' ';
+		while (off != 'e') {
+			int x, y;
+			std::cout << "Enter Point coordinate (x, y): \n";
+			std::cin >> x;
+			std::cin >> y;
+			points.push_back(Point(x, y));
+			++count;
+			if (count > 2) {
+				std::cout << "enter any key to continue, enter (e) to exit: \n";
+				std::cin >> off;
+				value = -1;
+			}
+		}
 		Polygon* shape_polygon = new Polygon(points);
 		obj[0] = shape_polygon;
 		is_create_polygon = true;
@@ -400,15 +544,27 @@ void renderScene() {
 		obj[0]->Draw();
 
 		if (value == 11) {
-			obj[0]->Rotate({ 0,0 }, 15);
+			int x, y;
+			std::cout << "Enter rotate coordinate x, y: \n";
+			std::cin >> x >> y;
+			int angle;
+			std::cout << "Enter Angle: \n";
+			std::cin >> angle;
+			obj[0]->Rotate(Point(x, y), angle);
 			value = -1;
 		}
 		else if (value == 12) {
-			obj[0]->Reflex(Point(0,0));
+			int x, y;
+			std::cout << "Enter reflex coordinate x, y: \n";
+			std::cin >> x >> y;
+			obj[0]->Reflex(Point(x, y));
 			value = -1;
 		}
 		else if (value == 13) {
-			obj[0]->Reflex(Line(Point(-30, 0), Point(30, 0)));
+			int x1, y1, x2, y2;
+			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
+			std::cin >> x1 >> y1 >> x2 >> y2;
+			obj[0]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
 		else if (value == 14) {
@@ -433,7 +589,7 @@ void renderScene() {
 		obj[1]->Draw();
 
 		if (value == 21) {
-			obj[1]->Rotate({ 0, 0 }, 15);
+			obj[1]->Rotate(Point(0, 0), 15);
 			value = -1;
 		}
 		else if (value == 22) {
@@ -646,6 +802,7 @@ void createMenu(void) {
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
 ////////////////////////////////////////////////////
+
 int main(int argc, char** argv) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
