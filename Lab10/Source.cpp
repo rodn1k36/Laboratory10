@@ -78,8 +78,8 @@ public:
 	virtual double area() = 0;
 	virtual bool operator==(const Shape& another) = 0;
 	virtual bool isCongruentTo(const Shape& another) = 0;
-	//virtual bool isSimilarTo(const Shape& another) = 0;
-
+	virtual bool isSimilarTo(const Shape& another) = 0;
+	virtual bool containsPoint(Point point) = 0;
 } *obj[6] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
 
 class Polygon : public Shape {
@@ -218,25 +218,38 @@ public:
 		return false;
 	}
 
-	//bool isSimilarTo(const Shape& another) override {
-	//	if (dynamic_cast<const Polygon*>(&another) == nullptr) {
-	//		return false;
-	//	}
-	//	const Polygon& another_polygon = dynamic_cast<const Polygon&>(another);
+	bool isSimilarTo(const Shape& another) override {
+		if (dynamic_cast<const Polygon*>(&another) == nullptr) {
+			return false;
+		}
+		const Polygon& another_polygon = dynamic_cast<const Polygon&>(another);
 
-	//	if (this->vertices.size() != another_polygon.vertices.size()) return false;
+		if (this->vertices.size() != another_polygon.vertices.size()) return false;
 
-	//	for (int i = 0; i < vertices.size(); ++i) {
-	//		bool is_equal = true;
-	//		double simular_k = sqrt(pow(this->vertices[0].x - this->vertices[1].x, 2) + pow(this->vertices[0].y - this->vertices[1].y, 2)) /
-	//			sqrt(pow(another_polygon.vertices[0].x - another_polygon.vertices[1].x, 2) + pow(another_polygon.vertices[0].y - another_polygon.vertices[1].y, 2)); // отношение сторон фигур
-	//		for (int j = 0; j < vertices.size(); ++j) {
-	//			
-	//		}
-	//		if (is_equal) return true;
-	//	}
-	//	
-	//}
+		for (int i = 0; i < vertices.size(); ++i) {
+			bool is_equal = true;
+			double simular_k = sqrt(pow(this->vertices[0].x - this->vertices[1].x, 2) + pow(this->vertices[0].y - this->vertices[1].y, 2)) /
+				sqrt(pow(another_polygon.vertices[0].x - another_polygon.vertices[1].x, 2) + pow(another_polygon.vertices[0].y - another_polygon.vertices[1].y, 2)); // отношение сторон фигур
+			for (int j = 0; j < vertices.size(); ++j) {
+				
+			}
+			if (is_equal) return true;
+		}
+		
+	}
+
+	bool containsPoint(Point point) override {
+		int n = verticesCount();
+		bool inside = false;
+
+		for (int i = 0, j = n - 1; i < n; j = i++) {
+			if ((vertices[i].y > point.y) != (vertices[j].y > point.y) &&
+				(point.x < (vertices[j].x - vertices[i].x) * (point.y - vertices[i].y) / (vertices[j].y - vertices[i].y) + vertices[i].x)) {
+				inside = !inside;
+			}
+		}
+		return inside;
+	}
 ///////////////////////////////////////
 	size_t verticesCount() {
 		return vertices.size();
@@ -314,8 +327,8 @@ public:
 			double s = sin(angle);
 			double c = cos(angle);
 
-			double new_x = x * c - y * s;
-			double new_y = x * s + y * c;
+			double new_x = x * c - y * s + (F.first.x + F.second.x) / 2;
+			double new_y = x * s + y * c + (F.first.y + F.second.y) / 2;
 
 			glVertex2f(new_x, new_y);
 		}
@@ -422,17 +435,47 @@ public:
 		if (this->F.first.x == another_ellipse.F.first.x &&
 			this->F.first.y == another_ellipse.F.first.y &&
 			this->F.second.x == another_ellipse.F.second.x &&
-			this->F.second.x == another_ellipse.F.second.x)
+			this->F.second.y == another_ellipse.F.second.y)
 			return true;
 
 		return false;
-
 	}
 
 	bool isCongruentTo(const Shape& another) override {
+		if (dynamic_cast<const Ellipse*>(&another) == nullptr) {
+			return false;
+		}
+
+		const Ellipse& another_ellipse = dynamic_cast<const Ellipse&>(another);
+
+		if (r / 2 - sqrt(pow(abs((this->F.first.x - this->F.second.x) / 2), 2) + pow(abs((this->F.first.y - this->F.second.y) / 2), 2)) ==
+			another_ellipse.r / 2 - sqrt(pow(abs((another_ellipse.F.first.x - another_ellipse.F.second.x) / 2), 2) + pow(abs((another_ellipse.F.first.y - another_ellipse.F.second.y) / 2), 2)) &&
+			sqrt(pow(r / 2, 2) - (sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)))) ==
+			sqrt(pow(another_ellipse.r / 2, 2) - (sqrt(pow(abs((another_ellipse.F.first.x - another_ellipse.F.second.x) / 2), 2) + pow(abs((another_ellipse.F.first.y - another_ellipse.F.second.y) / 2), 2))))) {
+			return true;
+		}
 		return false;
 	}
 
+	bool isSimilarTo(const Shape& another) override {
+		if (dynamic_cast<const Ellipse*>(&another) == nullptr) {
+			return false;
+		}
+
+		const Ellipse& another_ellipse = dynamic_cast<const Ellipse&>(another);
+
+		if (this->r / 2 - sqrt(pow(abs((this->F.first.x - this->F.second.x) / 2), 2) + pow(abs((this->F.first.y - this->F.second.y) / 2), 2)) /
+			another_ellipse.r / 2 - sqrt(pow(abs((another_ellipse.F.first.x - another_ellipse.F.second.x) / 2), 2) + pow(abs((another_ellipse.F.first.y - another_ellipse.F.second.y) / 2), 2)) ==
+			sqrt(pow(r / 2, 2) - (sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)))) /
+			sqrt(pow(another_ellipse.r / 2, 2) - (sqrt(pow(abs((another_ellipse.F.first.x - another_ellipse.F.second.x) / 2), 2) + pow(abs((another_ellipse.F.first.y - another_ellipse.F.second.y) / 2), 2))))) {
+			return true; // a относится к а с таким же коэффициентом как b к b
+		}
+		return false;
+	}
+
+	bool containsPoint(Point point) override {
+		return true;
+	}
 ///////////////////////////////////////
 	std::pair<Point, Point> focuses() {
 		return { F.first, F.second };
@@ -520,7 +563,7 @@ void renderScene() {
 		int count = 0;
 		char off = ' ';
 		while (off != 'e') {
-			int x, y;
+			double x, y;
 			std::cout << "Enter Point coordinate (x, y): \n";
 			std::cin >> x;
 			std::cin >> y;
@@ -544,42 +587,61 @@ void renderScene() {
 		obj[0]->Draw();
 
 		if (value == 11) {
-			int x, y;
+			double x, y;
 			std::cout << "Enter rotate coordinate x, y: \n";
 			std::cin >> x >> y;
-			int angle;
+			double angle;
 			std::cout << "Enter Angle: \n";
 			std::cin >> angle;
 			obj[0]->Rotate(Point(x, y), angle);
 			value = -1;
 		}
 		else if (value == 12) {
-			int x, y;
+			double x, y;
 			std::cout << "Enter reflex coordinate x, y: \n";
 			std::cin >> x >> y;
 			obj[0]->Reflex(Point(x, y));
 			value = -1;
 		}
 		else if (value == 13) {
-			int x1, y1, x2, y2;
+			double x1, y1, x2, y2;
 			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
 			std::cin >> x1 >> y1 >> x2 >> y2;
 			obj[0]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
 		else if (value == 14) {
-			obj[0]->Scale(Point(0, 0), 0.5);
+			double x, y, k;
+			std::cout << "Enter Scale point x, y: \n";
+			std::cin >> x >> y;
+			std::cout << "Enter coefficient Scale: \n";
+			std::cin >> k;
+			obj[0]->Scale(Point(x, y), k);
+			value = -1;
+		}
+		else if (value == 15) {
+			double x, y;
+			std::cout << "Enter Scale point x, y: \n";
+			std::cin >> x >> y;
+			std::cout << obj[0]->containsPoint(Point(x, y));
 			value = -1;
 		}
 	}
-	//////////////// ELLYPSE /////////////////////////////
+	////////////////////////// ELLYPSE /////////////////////////////
 	if (value == 20) {
-		Point F1(-60, 0);
-		Point F2(60, 0);
-		double r = 40;
-		Ellipse* shape_ellypse = new Ellipse(F1, F2, r); // как удалить?
+		double x1, y1, x2, y2, r;
+		std::cout << "Enter Points of F1, F2: x1, y1 and x2, y2: \n";
+		std::cin >> x1 >> y1 >> x2 >> y2;
+		Point F1(x1, y1);
+		Point F2(x2, y2);
+		std::cout << "Enter r:'\n";
+		std::cin >> r;
+
+		Ellipse* shape_ellypse = new Ellipse(F1, F2, r); //
 		obj[1] = shape_ellypse;
+
 		is_create_ellypse = true;
+		value = -1;
 
 		shape_ellypse->Draw();
 	}
@@ -589,29 +651,51 @@ void renderScene() {
 		obj[1]->Draw();
 
 		if (value == 21) {
-			obj[1]->Rotate(Point(0, 0), 15);
+			double x, y;
+			std::cout << "Enter rotate coordinate x, y: \n";
+			std::cin >> x >> y;
+			double angle;
+			std::cout << "Enter Angle: \n";
+			std::cin >> angle;
+			obj[1]->Rotate(Point(x, y), angle);
 			value = -1;
 		}
 		else if (value == 22) {
-			obj[1]->Reflex(Point(0,0));
+			double x, y;
+			std::cout << "Enter reflex coordinate x, y: \n";
+			std::cin >> x >> y;
+			obj[1]->Reflex(Point(x, y));
 			value = -1;
 		}
 		else if (value == 23) {
-			obj[1]->Reflex(Line(Point(-30, 0), Point(30, 0)));
+			double x1, y1, x2, y2;
+			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
+			std::cin >> x1 >> y1 >> x2 >> y2;
+			obj[1]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
 		else if (value == 24) {
-			obj[1]->Scale(Point(0,0), 0.7);
+			double x, y, k;
+			std::cout << "Enter Scale point x, y: \n";
+			std::cin >> x >> y;
+			std::cout << "Enter coefficient Scale: \n";
+			std::cin >> k;
+			obj[1]->Scale(Point(x, y), k);
 			value = -1;
 		}
 	}
 	/////////////////////////// CIRCLE ////////////////////////////////////
 	if (value == 30) {
-		Point center(0, 0);
-		double r = 60;
-		Circle* shape_circle = new Circle(center, r); // как удалить?
+		double x, y;
+		std::cout << "Enter center x, y: \n";
+		std::cin >> x >> y;
+		double r;
+		std::cout << "Enter radius: \n";
+		std::cin >> r;
+		Circle* shape_circle = new Circle(Point(x, y), r);
 		obj[2] = shape_circle;
 		is_create_circle = true;
+		value = -1;
 
 		shape_circle->Draw();
 	}
@@ -621,28 +705,51 @@ void renderScene() {
 		obj[2]->Draw();
 
 		if (value == 31) {
-			obj[2]->Rotate({ 0, 0 }, 15);
+			double x, y;
+			std::cout << "Enter rotate coordinate x, y: \n";
+			std::cin >> x >> y;
+			double angle;
+			std::cout << "Enter Angle: \n";
+			std::cin >> angle;
+			obj[2]->Rotate(Point(x, y), angle);
 			value = -1;
 		}
 		else if (value == 32) {
-			obj[2]->Reflex(Point(0, 0));
+			double x, y;
+			std::cout << "Enter reflex coordinate x, y: \n";
+			std::cin >> x >> y;
+			obj[2]->Reflex(Point(x, y));
 			value = -1;
 		}
 		else if (value == 33) {
-			obj[2]->Reflex(Line(Point(-30, 0), Point(30, 0)));
+			double x1, y1, x2, y2;
+			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
+			std::cin >> x1 >> y1 >> x2 >> y2;
+			obj[2]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
 		else if (value == 34) {
-			obj[2]->Scale(Point(0, 0), 0.7);
+			double x, y, k;
+			std::cout << "Enter Scale point x, y: \n";
+			std::cin >> x >> y;
+			std::cout << "Enter coefficient Scale: \n";
+			std::cin >> k;
+			obj[2]->Scale(Point(x, y), k);
 			value = -1;
 		}
 	}
 	///////////////////////// RECTANGLE ////////////////////////
 	if (value == 40) {
-		Rectangle* shape_rectangle = new Rectangle(Point(-60,-30), Point(60, 30)); // как удалить?
+		double x1, y1, x2, y2;
+		std::cout << "Enter Point (left down): \n";
+		std::cin >> x1 >> y1;
+		std::cout << "Enter Point (right up): \n";
+		std::cin >> x2 >> y2;
+		Rectangle* shape_rectangle = new Rectangle(Point(x1,y1), Point(x2, y2)); // как удалить?
 		obj[3] = shape_rectangle;
 		is_create_rectangle = true;
-
+		value = -1;
+		
 		shape_rectangle->Draw();
 	}
 
@@ -651,28 +758,51 @@ void renderScene() {
 		obj[3]->Draw();
 
 		if (value == 41) {
-			obj[3]->Rotate({ 0, 0 }, 15);
+			double x, y;
+			std::cout << "Enter rotate coordinate x, y: \n";
+			std::cin >> x >> y;
+			double angle;
+			std::cout << "Enter Angle: \n";
+			std::cin >> angle;
+			obj[3]->Rotate(Point(x, y), angle);
 			value = -1;
 		}
 		else if (value == 42) {
-			obj[3]->Reflex(Point(0, 0));
+			double x, y;
+			std::cout << "Enter reflex coordinate x, y: \n";
+			std::cin >> x >> y;
+			obj[3]->Reflex(Point(x, y));
 			value = -1;
 		}
 		else if (value == 43) {
-			obj[3]->Reflex(Line(Point(-30, 0), Point(30, 0)));
+			double x1, y1, x2, y2;
+			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
+			std::cin >> x1 >> y1 >> x2 >> y2;
+			obj[3]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
 		else if (value == 44) {
-			obj[3]->Scale(Point(0, 0), 0.7);
+			double x, y, k;
+			std::cout << "Enter Scale point x, y: \n";
+			std::cin >> x >> y;
+			std::cout << "Enter coefficient Scale: \n";
+			std::cin >> k;
+			obj[3]->Scale(Point(x, y), k);
 			value = -1;
 		}
 	}
 	///////////////////////// SQUARE ////////////////////////////
 
 	if (value == 50) {
-		Square* shape_square = new Square(Point(-30, -30), Point(30, 30)); // как удалить?
+		double x1, y1, x2, y2;
+		std::cout << "Enter Point (left down): \n";
+		std::cin >> x1 >> y1;
+		std::cout << "Enter Point (right up): \n";
+		std::cin >> x2 >> y2;
+		Square* shape_square = new Square(Point(x1, y1), Point(x2, y2));
 		obj[4] = shape_square;
 		is_create_square = true;
+		value = -1;
 
 		shape_square->Draw();
 	}
@@ -682,28 +812,53 @@ void renderScene() {
 		obj[4]->Draw();
 
 		if (value == 51) {
-			obj[4]->Rotate({ 0, 0 }, 15);
+			double x, y;
+			std::cout << "Enter rotate coordinate x, y: \n";
+			std::cin >> x >> y;
+			double angle;
+			std::cout << "Enter Angle: \n";
+			std::cin >> angle;
+			obj[4]->Rotate(Point(x, y), angle);
 			value = -1;
 		}
 		else if (value == 52) {
-			obj[4]->Reflex(Point(0, 0));
+			double x, y;
+			std::cout << "Enter reflex coordinate x, y: \n";
+			std::cin >> x >> y;
+			obj[4]->Reflex(Point(x, y));
 			value = -1;
 		}
 		else if (value == 53) {
-			obj[4]->Reflex(Line(Point(-30, 0), Point(30, 0)));
+			double x1, y1, x2, y2;
+			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
+			std::cin >> x1 >> y1 >> x2 >> y2;
+			obj[4]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
 		else if (value == 54) {
-			obj[4]->Scale(Point(0, 0), 0.7);
+			double x, y, k;
+			std::cout << "Enter Scale point x, y: \n";
+			std::cin >> x >> y;
+			std::cout << "Enter coefficient Scale: \n";
+			std::cin >> k;
+			obj[4]->Scale(Point(x, y), k);
 			value = -1;
 		}
 	}
-	//////////////////////////// TRIANGLE //////////////////////
+	////////////////////////// TRIANGLE //////////////////////
 
 	if (value == 60) {
-		Triangle* shape_triangle = new Triangle(Point(-30, -30), Point(30, -30), Point(0, 30)); // как удалить?
+		double x1, y1, x2, y2, x3, y3;
+		std::cout << "Enter Point (left down): \n";
+		std::cin >> x1 >> y1;
+		std::cout << "Enter Point (up): \n";
+		std::cin >> x2 >> y2;
+		std::cout << "Enter Point (right): \n";
+		std::cin >> x3 >> y3;
+		Triangle* shape_triangle = new Triangle(Point(x1, y1), Point(x2, y2), Point(x3, y3)); // как удалить?
 		obj[5] = shape_triangle;
 		is_create_triangle = true;
+		value = -1;
 
 		shape_triangle->Draw();
 	}
@@ -713,19 +868,36 @@ void renderScene() {
 		obj[5]->Draw();
 
 		if (value == 61) {
-			obj[5]->Rotate({ 0, 0 }, 15);
+			double x, y;
+			std::cout << "Enter rotate coordinate x, y: \n";
+			std::cin >> x >> y;
+			double angle;
+			std::cout << "Enter Angle: \n";
+			std::cin >> angle;
+			obj[5]->Rotate(Point(x, y), angle);
 			value = -1;
 		}
 		else if (value == 62) {
-			obj[5]->Reflex(Point(0, 0));
+			double x, y;
+			std::cout << "Enter reflex coordinate x, y: \n";
+			std::cin >> x >> y;
+			obj[5]->Reflex(Point(x, y));
 			value = -1;
 		}
 		else if (value == 63) {
-			obj[5]->Reflex(Line(Point(-30, 0), Point(30, 0)));
+			double x1, y1, x2, y2;
+			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
+			std::cin >> x1 >> y1 >> x2 >> y2;
+			obj[5]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
 		else if (value == 64) {
-			obj[5]->Scale(Point(0, 0), 0.7);
+			double x, y, k;
+			std::cout << "Enter Scale point x, y: \n";
+			std::cin >> x >> y;
+			std::cout << "Enter coefficient Scale: \n";
+			std::cin >> k;
+			obj[5]->Scale(Point(x, y), k);
 			value = -1;
 		}
 	}
@@ -751,6 +923,7 @@ void createMenu(void) {
 	glutAddMenuEntry("Reflex point", 12);
 	glutAddMenuEntry("Reflex line", 13);
 	glutAddMenuEntry("Scale", 14);
+	glutAddMenuEntry("Pps", 15);
 
 	submenu_ellipse_id = glutCreateMenu(menu);
 	glutAddMenuEntry("Draw", 20);
