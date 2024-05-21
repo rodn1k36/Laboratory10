@@ -247,7 +247,7 @@ public:
 				(point.x < (vertices[j].x - vertices[i].x) * (point.y - vertices[i].y) / (vertices[j].y - vertices[i].y) + vertices[i].x)) {
 				inside = !inside;
 			}
-		}
+		} // если находится справа и имеет другую высоту то флаг инвертируется, луч из точки должен пересечьнечетное кол-во вершин чтобы быть внутри фигуры
 		return inside;
 	}
 ///////////////////////////////////////
@@ -311,8 +311,9 @@ public:
 		glColor3f(1, 0, 0);
 		glBegin(GL_POINTS);
 		double x, y;
-		double a = r/2 - sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)); // big axis
-		double b = sqrt(pow(r / 2, 2) - (sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)))); // small axis
+		double a = sqrt(pow(abs(F.first.x - F.second.x) / 2, 2) + pow(abs(F.first.y - F.second.y) / 2, 2)); // big axis
+		double b = r / 2; // small axis
+
 		double angle = 0;
 		if (F.second.x != 0)
 			angle = atan(F.second.y / F.second.x);
@@ -445,15 +446,12 @@ public:
 		if (dynamic_cast<const Ellipse*>(&another) == nullptr) {
 			return false;
 		}
-
+		
 		const Ellipse& another_ellipse = dynamic_cast<const Ellipse&>(another);
 
-		if (r / 2 - sqrt(pow(abs((this->F.first.x - this->F.second.x) / 2), 2) + pow(abs((this->F.first.y - this->F.second.y) / 2), 2)) ==
-			another_ellipse.r / 2 - sqrt(pow(abs((another_ellipse.F.first.x - another_ellipse.F.second.x) / 2), 2) + pow(abs((another_ellipse.F.first.y - another_ellipse.F.second.y) / 2), 2)) &&
-			sqrt(pow(r / 2, 2) - (sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)))) ==
-			sqrt(pow(another_ellipse.r / 2, 2) - (sqrt(pow(abs((another_ellipse.F.first.x - another_ellipse.F.second.x) / 2), 2) + pow(abs((another_ellipse.F.first.y - another_ellipse.F.second.y) / 2), 2))))) {
-			return true;
-		}
+		if (sqrt(pow(abs(this->F.first.x - this->F.second.x) / 2, 2) + pow(abs(this->F.first.y - this->F.second.y) / 2, 2)) ==
+			sqrt(pow(abs(another_ellipse.F.first.x - another_ellipse.F.second.x) / 2, 2) + pow(abs(another_ellipse.F.first.y - another_ellipse.F.second.y) / 2, 2)) &&
+			this->r / 2 == another_ellipse.r / 2) { return true; }
 		return false;
 	}
 
@@ -464,31 +462,32 @@ public:
 
 		const Ellipse& another_ellipse = dynamic_cast<const Ellipse&>(another);
 
-		if (this->r / 2 - sqrt(pow(abs((this->F.first.x - this->F.second.x) / 2), 2) + pow(abs((this->F.first.y - this->F.second.y) / 2), 2)) /
-			another_ellipse.r / 2 - sqrt(pow(abs((another_ellipse.F.first.x - another_ellipse.F.second.x) / 2), 2) + pow(abs((another_ellipse.F.first.y - another_ellipse.F.second.y) / 2), 2)) ==
-			sqrt(pow(r / 2, 2) - (sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)))) /
-			sqrt(pow(another_ellipse.r / 2, 2) - (sqrt(pow(abs((another_ellipse.F.first.x - another_ellipse.F.second.x) / 2), 2) + pow(abs((another_ellipse.F.first.y - another_ellipse.F.second.y) / 2), 2))))) {
+		if (sqrt(pow(abs(this->F.first.x - this->F.second.x) / 2, 2) + pow(abs(this->F.first.y - this->F.second.y) / 2, 2)) /
+			sqrt(pow(abs(another_ellipse.F.first.x - another_ellipse.F.second.x) / 2, 2) + pow(abs(another_ellipse.F.first.y - another_ellipse.F.second.y) / 2, 2)) ==
+			r / 2 == another_ellipse.r / 2 ) {
 			return true; // a относится к а с таким же коэффициентом как b к b
 		}
 		return false;
 	}
 
 	bool containsPoint(Point point) override {
-		return true;
+		double a = sqrt(pow(abs(F.first.x - F.second.x) / 2, 2) + pow(abs(F.first.y - F.second.y) / 2, 2)); // big axis
+		double b = r / 2; // small axis
+
+		double result = (point.x * point.x) / (a * a) + (point.y * point.y) / (b * b);
+
+		if (result < 1) {
+			return true;
+		}
+		else {
+			return false;
+		}
 	}
+
 ///////////////////////////////////////
 	std::pair<Point, Point> focuses() {
 		return { F.first, F.second };
 	}
-	/*std::pair<Line, Line> directrices() {
-
-	}
-	double eccentricity() {
-
-	}
-	Point center() {
-
-	} */
 };
 
 class Circle : public Ellipse {
@@ -620,15 +619,43 @@ void renderScene() {
 			value = -1;
 		}
 		else if (value == 15) {
-			double x, y;
-			std::cout << "Enter Scale point x, y: \n";
-			std::cin >> x >> y;
-			std::cout << obj[0]->containsPoint(Point(x, y));
+			std::cout << obj[0]->perimeter() << '\n';
 			value = -1;
+		}
+		else if (value == 16) {
+			std::cout << obj[0]->area() << '\n';
+			value = -1;
+		}
+		else if (value == 17) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << (obj[0] == obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 18) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << obj[0]->isCongruentTo(*obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 19) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << obj[0]->isSimilarTo(*obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 20) {
+			double x, y;
+			std::cout << "Enter x, y \n"; 
+			std::cin >> x >> y;
+			std::cout << obj[0]->containsPoint(Point(x, y)) << '\n';
 		}
 	}
 	////////////////////////// ELLYPSE /////////////////////////////
-	if (value == 20) {
+	if (value == 21) {
 		double x1, y1, x2, y2, r;
 		std::cout << "Enter Points of F1, F2: x1, y1 and x2, y2: \n";
 		std::cin >> x1 >> y1 >> x2 >> y2;
@@ -637,7 +664,7 @@ void renderScene() {
 		std::cout << "Enter r:'\n";
 		std::cin >> r;
 
-		Ellipse* shape_ellypse = new Ellipse(F1, F2, r); //
+		Ellipse* shape_ellypse = new Ellipse(F1, F2, r); 
 		obj[1] = shape_ellypse;
 
 		is_create_ellypse = true;
@@ -650,7 +677,7 @@ void renderScene() {
 
 		obj[1]->Draw();
 
-		if (value == 21) {
+		if (value == 22) {
 			double x, y;
 			std::cout << "Enter rotate coordinate x, y: \n";
 			std::cin >> x >> y;
@@ -660,21 +687,21 @@ void renderScene() {
 			obj[1]->Rotate(Point(x, y), angle);
 			value = -1;
 		}
-		else if (value == 22) {
+		else if (value == 23) {
 			double x, y;
 			std::cout << "Enter reflex coordinate x, y: \n";
 			std::cin >> x >> y;
 			obj[1]->Reflex(Point(x, y));
 			value = -1;
 		}
-		else if (value == 23) {
+		else if (value == 24) {
 			double x1, y1, x2, y2;
 			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
 			std::cin >> x1 >> y1 >> x2 >> y2;
 			obj[1]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
-		else if (value == 24) {
+		else if (value == 25) {
 			double x, y, k;
 			std::cout << "Enter Scale point x, y: \n";
 			std::cin >> x >> y;
@@ -683,9 +710,45 @@ void renderScene() {
 			obj[1]->Scale(Point(x, y), k);
 			value = -1;
 		}
+		
+		else if (value == 26) {
+			std::cout << obj[1]->perimeter() << '\n';
+			value = -1;
+		}
+		else if (value == 27) {
+			std::cout << obj[1]->area() << '\n';
+			value = -1;
+		}
+		else if (value == 28) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << (obj[1] == obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 29) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << obj[1]->isCongruentTo(*obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 30) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << obj[1]->isSimilarTo(*obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 31) {
+			double x, y;
+			std::cout << "Enter x, y \n";
+			std::cin >> x >> y;
+			std::cout << obj[1]->containsPoint(Point(x, y)) << '\n';
+		}
 	}
 	/////////////////////////// CIRCLE ////////////////////////////////////
-	if (value == 30) {
+	if (value == 32) {
 		double x, y;
 		std::cout << "Enter center x, y: \n";
 		std::cin >> x >> y;
@@ -704,7 +767,7 @@ void renderScene() {
 
 		obj[2]->Draw();
 
-		if (value == 31) {
+		if (value == 33) {
 			double x, y;
 			std::cout << "Enter rotate coordinate x, y: \n";
 			std::cin >> x >> y;
@@ -714,21 +777,21 @@ void renderScene() {
 			obj[2]->Rotate(Point(x, y), angle);
 			value = -1;
 		}
-		else if (value == 32) {
+		else if (value == 34) {
 			double x, y;
 			std::cout << "Enter reflex coordinate x, y: \n";
 			std::cin >> x >> y;
 			obj[2]->Reflex(Point(x, y));
 			value = -1;
 		}
-		else if (value == 33) {
+		else if (value == 35) {
 			double x1, y1, x2, y2;
 			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
 			std::cin >> x1 >> y1 >> x2 >> y2;
 			obj[2]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
-		else if (value == 34) {
+		else if (value == 36) {
 			double x, y, k;
 			std::cout << "Enter Scale point x, y: \n";
 			std::cin >> x >> y;
@@ -737,9 +800,44 @@ void renderScene() {
 			obj[2]->Scale(Point(x, y), k);
 			value = -1;
 		}
+		else if (value == 37) {
+			std::cout << obj[2]->perimeter() << '\n';
+			value = -1;
+		}
+		else if (value == 38) {
+			std::cout << obj[2]->area() << '\n';
+			value = -1;
+		}
+		else if (value == 39) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << (obj[2] == obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 40) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << obj[2]->isCongruentTo(*obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 41) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << obj[2]->isSimilarTo(*obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 42) {
+			double x, y;
+			std::cout << "Enter x, y \n";
+			std::cin >> x >> y;
+			std::cout << obj[2]->containsPoint(Point(x, y)) << '\n';
+		}
 	}
 	///////////////////////// RECTANGLE ////////////////////////
-	if (value == 40) {
+	if (value == 43) {
 		double x1, y1, x2, y2;
 		std::cout << "Enter Point (left down): \n";
 		std::cin >> x1 >> y1;
@@ -757,7 +855,7 @@ void renderScene() {
 
 		obj[3]->Draw();
 
-		if (value == 41) {
+		if (value == 44) {
 			double x, y;
 			std::cout << "Enter rotate coordinate x, y: \n";
 			std::cin >> x >> y;
@@ -767,21 +865,21 @@ void renderScene() {
 			obj[3]->Rotate(Point(x, y), angle);
 			value = -1;
 		}
-		else if (value == 42) {
+		else if (value == 45) {
 			double x, y;
 			std::cout << "Enter reflex coordinate x, y: \n";
 			std::cin >> x >> y;
 			obj[3]->Reflex(Point(x, y));
 			value = -1;
 		}
-		else if (value == 43) {
+		else if (value == 46) {
 			double x1, y1, x2, y2;
 			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
 			std::cin >> x1 >> y1 >> x2 >> y2;
 			obj[3]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
-		else if (value == 44) {
+		else if (value == 47) {
 			double x, y, k;
 			std::cout << "Enter Scale point x, y: \n";
 			std::cin >> x >> y;
@@ -790,10 +888,45 @@ void renderScene() {
 			obj[3]->Scale(Point(x, y), k);
 			value = -1;
 		}
+		else if (value == 48) {
+			std::cout << obj[3]->perimeter() << '\n';
+			value = -1;
+		}
+		else if (value == 49) {
+			std::cout << obj[3]->area() << '\n';
+			value = -1;
+		}
+		else if (value == 50) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << (obj[3] == obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 51) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << obj[3]->isCongruentTo(*obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 52) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << obj[3]->isSimilarTo(*obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 53) {
+			double x, y;
+			std::cout << "Enter x, y \n";
+			std::cin >> x >> y;
+			std::cout << obj[3]->containsPoint(Point(x, y)) << '\n';
+		}
 	}
 	///////////////////////// SQUARE ////////////////////////////
 
-	if (value == 50) {
+	if (value == 54) {
 		double x1, y1, x2, y2;
 		std::cout << "Enter Point (left down): \n";
 		std::cin >> x1 >> y1;
@@ -811,7 +944,7 @@ void renderScene() {
 
 		obj[4]->Draw();
 
-		if (value == 51) {
+		if (value == 55) {
 			double x, y;
 			std::cout << "Enter rotate coordinate x, y: \n";
 			std::cin >> x >> y;
@@ -821,21 +954,21 @@ void renderScene() {
 			obj[4]->Rotate(Point(x, y), angle);
 			value = -1;
 		}
-		else if (value == 52) {
+		else if (value == 56) {
 			double x, y;
 			std::cout << "Enter reflex coordinate x, y: \n";
 			std::cin >> x >> y;
 			obj[4]->Reflex(Point(x, y));
 			value = -1;
 		}
-		else if (value == 53) {
+		else if (value == 57) {
 			double x1, y1, x2, y2;
 			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
 			std::cin >> x1 >> y1 >> x2 >> y2;
 			obj[4]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
-		else if (value == 54) {
+		else if (value == 58) {
 			double x, y, k;
 			std::cout << "Enter Scale point x, y: \n";
 			std::cin >> x >> y;
@@ -844,10 +977,45 @@ void renderScene() {
 			obj[4]->Scale(Point(x, y), k);
 			value = -1;
 		}
+		else if (value == 59) {
+			std::cout << obj[4]->perimeter() << '\n';
+			value = -1;
+		}
+		else if (value == 60) {
+			std::cout << obj[4]->area() << '\n';
+			value = -1;
+		}
+		else if (value == 61) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << (obj[4] == obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 62) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << obj[4]->isCongruentTo(*obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 63) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << obj[4]->isSimilarTo(*obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 64) {
+			double x, y;
+			std::cout << "Enter x, y \n";
+			std::cin >> x >> y;
+			std::cout << obj[4]->containsPoint(Point(x, y)) << '\n';
+		}
 	}
 	////////////////////////// TRIANGLE //////////////////////
 
-	if (value == 60) {
+	if (value == 65) {
 		double x1, y1, x2, y2, x3, y3;
 		std::cout << "Enter Point (left down): \n";
 		std::cin >> x1 >> y1;
@@ -867,7 +1035,7 @@ void renderScene() {
 
 		obj[5]->Draw();
 
-		if (value == 61) {
+		if (value == 66) {
 			double x, y;
 			std::cout << "Enter rotate coordinate x, y: \n";
 			std::cin >> x >> y;
@@ -877,21 +1045,21 @@ void renderScene() {
 			obj[5]->Rotate(Point(x, y), angle);
 			value = -1;
 		}
-		else if (value == 62) {
+		else if (value == 67) {
 			double x, y;
 			std::cout << "Enter reflex coordinate x, y: \n";
 			std::cin >> x >> y;
 			obj[5]->Reflex(Point(x, y));
 			value = -1;
 		}
-		else if (value == 63) {
+		else if (value == 68) {
 			double x1, y1, x2, y2;
 			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
 			std::cin >> x1 >> y1 >> x2 >> y2;
 			obj[5]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
-		else if (value == 64) {
+		else if (value == 69) {
 			double x, y, k;
 			std::cout << "Enter Scale point x, y: \n";
 			std::cin >> x >> y;
@@ -899,6 +1067,41 @@ void renderScene() {
 			std::cin >> k;
 			obj[5]->Scale(Point(x, y), k);
 			value = -1;
+		}
+		else if (value == 70) {
+			std::cout << obj[5]->perimeter() << '\n';
+			value = -1;
+		}
+		else if (value == 71) {
+			std::cout << obj[5]->area() << '\n';
+			value = -1;
+		}
+		else if (value == 72) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << (obj[5] == obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 73) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << obj[5]->isCongruentTo(*obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 74) {
+			int num;
+			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
+			std::cin >> num;
+			std::cout << obj[5]->isSimilarTo(*obj[num]) << '\n';
+			value = -1;
+		}
+		else if (value == 75) {
+			double x, y;
+			std::cout << "Enter x, y \n";
+			std::cin >> x >> y;
+			std::cout << obj[5]->containsPoint(Point(x, y)) << '\n';
 		}
 	}
 	glutSwapBuffers();
@@ -923,42 +1126,77 @@ void createMenu(void) {
 	glutAddMenuEntry("Reflex point", 12);
 	glutAddMenuEntry("Reflex line", 13);
 	glutAddMenuEntry("Scale", 14);
-	glutAddMenuEntry("Pps", 15);
+	glutAddMenuEntry("Perimeter", 15);
+	glutAddMenuEntry("Area", 16);
+	glutAddMenuEntry("Is matches", 17);
+	glutAddMenuEntry("Is congruent", 18);
+	glutAddMenuEntry("Is simular", 19);
+	glutAddMenuEntry("Is contains Point", 20);
 
 	submenu_ellipse_id = glutCreateMenu(menu);
-	glutAddMenuEntry("Draw", 20);
-	glutAddMenuEntry("Rotate", 21);
-	glutAddMenuEntry("Reflex point", 22);
-	glutAddMenuEntry("Reflex line", 23);
-	glutAddMenuEntry("Scale", 24);
+	glutAddMenuEntry("Draw", 21);
+	glutAddMenuEntry("Rotate", 22);
+	glutAddMenuEntry("Reflex point", 23);
+	glutAddMenuEntry("Reflex line", 24);
+	glutAddMenuEntry("Scale", 25);
+	glutAddMenuEntry("Perimeter", 26);
+	glutAddMenuEntry("Area", 27);
+	glutAddMenuEntry("Is matches", 28);
+	glutAddMenuEntry("Is congruent", 29);
+	glutAddMenuEntry("Is simular", 30);
+	glutAddMenuEntry("Is contains Point", 31);
 
 	submenu_circle_id = glutCreateMenu(menu);
-	glutAddMenuEntry("Draw", 30);
-	glutAddMenuEntry("Rotate", 31);
-	glutAddMenuEntry("Reflex point", 32);
-	glutAddMenuEntry("Reflex line", 33);
-	glutAddMenuEntry("Scale", 34);
+	glutAddMenuEntry("Draw", 32);
+	glutAddMenuEntry("Rotate", 33);
+	glutAddMenuEntry("Reflex point", 34);
+	glutAddMenuEntry("Reflex line", 35);
+	glutAddMenuEntry("Scale", 36);
+	glutAddMenuEntry("Perimeter", 37);
+	glutAddMenuEntry("Area", 38);
+	glutAddMenuEntry("Is matches", 39);
+	glutAddMenuEntry("Is congruent", 40);
+	glutAddMenuEntry("Is simular", 41);
+	glutAddMenuEntry("Is contains Point", 42);
 
 	submenu_rectangle_id = glutCreateMenu(menu);
-	glutAddMenuEntry("Draw", 40);
-	glutAddMenuEntry("Rotate", 41);
-	glutAddMenuEntry("Reflex point", 42);
-	glutAddMenuEntry("Reflex line", 43);
-	glutAddMenuEntry("Scale", 44);
+	glutAddMenuEntry("Draw", 43);
+	glutAddMenuEntry("Rotate", 44);
+	glutAddMenuEntry("Reflex point", 45);
+	glutAddMenuEntry("Reflex line", 46);
+	glutAddMenuEntry("Scale", 47);
+	glutAddMenuEntry("Perimeter", 48);
+	glutAddMenuEntry("Area", 49);
+	glutAddMenuEntry("Is matches", 50);
+	glutAddMenuEntry("Is congruent", 51);
+	glutAddMenuEntry("Is simular", 52);
+	glutAddMenuEntry("Is contains Point", 53);
 
 	submenu_square_id = glutCreateMenu(menu);
-	glutAddMenuEntry("Draw", 50);
-	glutAddMenuEntry("Rotate", 51);
-	glutAddMenuEntry("Reflex point", 52);
-	glutAddMenuEntry("Reflex line", 53);
-	glutAddMenuEntry("Scale", 54);
+	glutAddMenuEntry("Draw", 54);
+	glutAddMenuEntry("Rotate", 55);
+	glutAddMenuEntry("Reflex point", 56);
+	glutAddMenuEntry("Reflex line", 57);
+	glutAddMenuEntry("Scale", 58);
+	glutAddMenuEntry("Perimeter", 59);
+	glutAddMenuEntry("Area", 60);
+	glutAddMenuEntry("Is matches", 61);
+	glutAddMenuEntry("Is congruent", 62);
+	glutAddMenuEntry("Is simular", 63);
+	glutAddMenuEntry("Is contains Point", 64);
 
 	submenu_triangle_id = glutCreateMenu(menu);
-	glutAddMenuEntry("Draw", 60);
-	glutAddMenuEntry("Rotate", 61);
-	glutAddMenuEntry("Reflex point", 62);
-	glutAddMenuEntry("Reflex line", 63);
-	glutAddMenuEntry("Scale", 64);
+	glutAddMenuEntry("Draw", 65);
+	glutAddMenuEntry("Rotate", 66);
+	glutAddMenuEntry("Reflex point", 67);
+	glutAddMenuEntry("Reflex line", 68);
+	glutAddMenuEntry("Scale", 69);
+	glutAddMenuEntry("Perimeter", 70);
+	glutAddMenuEntry("Area", 71);
+	glutAddMenuEntry("Is matches", 72);
+	glutAddMenuEntry("Is congruent", 73);
+	glutAddMenuEntry("Is simular", 74);
+	glutAddMenuEntry("Is contains Point", 75);
 
 	submenu_shape_id = glutCreateMenu(menu);
 	glutAddSubMenu("Polygon", submenu_polygon_id);
