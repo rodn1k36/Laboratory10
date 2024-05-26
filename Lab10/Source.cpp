@@ -309,17 +309,20 @@ public:
 
 	void Draw() override {
 		glColor3f(1, 0, 0);
-		glBegin(GL_POINTS);
+		glBegin(GL_LINE_LOOP); 
 		double x, y;
 		double a = sqrt(pow(abs(F.first.x - F.second.x) / 2, 2) + pow(abs(F.first.y - F.second.y) / 2, 2)); // big axis
 		double b = r / 2; // small axis
-
+		if (F.first.x == F.second.x && F.first.y == F.second.y) {
+			a = r;
+			b = r;
+		}
 		double angle = 0;
 		if (F.second.x != 0)
 			angle = atan(F.second.y / F.second.x);
-		
-		if (r < 2 * b)
-			throw 1;
+
+		/*if (r < 2 * b)
+			throw 1;*/
 
 		for (int i = 1; i < 360; ++i) {
 			x = a * cos(static_cast<double>(i) / 180 * 3.15);
@@ -336,6 +339,7 @@ public:
 
 		glEnd();
 	}
+
 
 	void Rotate(Point center, double angle) override {
 
@@ -420,8 +424,8 @@ public:
 	}
 
 	double area() override {
-		double a = r / 2 - sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)); // big axis
-		double b = sqrt(pow(r / 2, 2) - (sqrt(pow(abs((F.first.x - F.second.x) / 2), 2) + pow(abs((F.first.y - F.second.y) / 2), 2)))); // small axis
+		double a = sqrt(pow(abs(F.first.x - F.second.x) / 2, 2) + pow(abs(F.first.y - F.second.y) / 2, 2)); // big axis
+		double b = r / 2; // small axis
 
 		return 3.14 * a * b;
 	}
@@ -528,6 +532,9 @@ public:
 	Triangle(const Point& P1, const Point& P2, const Point& P3) : Polygon(std::vector <Point> {P1, P2, P3}) {}
 };
 
+
+std::vector<std::pair<Shape*, int>> figure;
+
 void renderScene() {
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -538,6 +545,10 @@ void renderScene() {
 	glVertex2f(0, -200);
 	glVertex2f(0, 200);
 	glEnd();
+
+	for (int i = 0; i < figure.size(); ++i) {
+		figure[i].first->Draw();
+	}
 
 	if (value == 1) {
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -554,7 +565,8 @@ void renderScene() {
 		is_create_rectangle = false;
 		is_create_square = false;
 		is_create_triangle = false;
-		
+
+		figure.clear();
 	}
 	//////////////////// POLYGON ////////////////////////////
 	if (value == 10) {
@@ -575,15 +587,11 @@ void renderScene() {
 			}
 		}
 		Polygon* shape_polygon = new Polygon(points);
-		obj[0] = shape_polygon;
+		figure.push_back({ shape_polygon, 0 });
 		is_create_polygon = true;
-
-		obj[0]->Draw();
 	}
 
 	else if (is_create_polygon) {
-
-		obj[0]->Draw();
 
 		if (value == 11) {
 			double x, y;
@@ -592,21 +600,21 @@ void renderScene() {
 			double angle;
 			std::cout << "Enter Angle: \n";
 			std::cin >> angle;
-			obj[0]->Rotate(Point(x, y), angle);
+			figure.back().first->Rotate(Point(x, y), angle);
 			value = -1;
 		}
 		else if (value == 12) {
 			double x, y;
 			std::cout << "Enter reflex coordinate x, y: \n";
 			std::cin >> x >> y;
-			obj[0]->Reflex(Point(x, y));
+			figure.back().first->Reflex(Point(x, y));
 			value = -1;
 		}
 		else if (value == 13) {
 			double x1, y1, x2, y2;
 			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
 			std::cin >> x1 >> y1 >> x2 >> y2;
-			obj[0]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
+			figure.back().first->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
 		else if (value == 14) {
@@ -615,43 +623,59 @@ void renderScene() {
 			std::cin >> x >> y;
 			std::cout << "Enter coefficient Scale: \n";
 			std::cin >> k;
-			obj[0]->Scale(Point(x, y), k);
+			figure.back().first->Scale(Point(x, y), k);
 			value = -1;
 		}
 		else if (value == 15) {
-			std::cout << obj[0]->perimeter() << '\n';
+			std::cout << figure.back().first->perimeter() << '\n';
 			value = -1;
 		}
 		else if (value == 16) {
-			std::cout << obj[0]->area() << '\n';
+			std::cout << figure.back().first->area() << '\n';
 			value = -1;
 		}
 		else if (value == 17) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << (obj[0] == obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << (figure.back().first == figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 18) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << obj[0]->isCongruentTo(*obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << figure.back().first->isCongruentTo(*figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 19) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << obj[0]->isSimilarTo(*obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << figure.back().first->isSimilarTo(*figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 20) {
 			double x, y;
-			std::cout << "Enter x, y \n"; 
+			std::cout << "Enter x, y \n";
 			std::cin >> x >> y;
-			std::cout << obj[0]->containsPoint(Point(x, y)) << '\n';
+			std::cout << figure.back().first->containsPoint(Point(x, y)) << '\n';
+			value = -1;
 		}
 	}
 	////////////////////////// ELLYPSE /////////////////////////////
@@ -664,9 +688,8 @@ void renderScene() {
 		std::cout << "Enter r:'\n";
 		std::cin >> r;
 
-		Ellipse* shape_ellypse = new Ellipse(F1, F2, r); 
-		obj[1] = shape_ellypse;
-
+		Ellipse* shape_ellypse = new Ellipse(F1, F2, r);
+		figure.push_back({ shape_ellypse, 1 });
 		is_create_ellypse = true;
 		value = -1;
 
@@ -675,8 +698,6 @@ void renderScene() {
 
 	else if (is_create_ellypse) {
 
-		obj[1]->Draw();
-
 		if (value == 22) {
 			double x, y;
 			std::cout << "Enter rotate coordinate x, y: \n";
@@ -684,21 +705,21 @@ void renderScene() {
 			double angle;
 			std::cout << "Enter Angle: \n";
 			std::cin >> angle;
-			obj[1]->Rotate(Point(x, y), angle);
+			figure.back().first->Rotate(Point(x, y), angle);
 			value = -1;
 		}
 		else if (value == 23) {
 			double x, y;
 			std::cout << "Enter reflex coordinate x, y: \n";
 			std::cin >> x >> y;
-			obj[1]->Reflex(Point(x, y));
+			figure.back().first->Reflex(Point(x, y));
 			value = -1;
 		}
 		else if (value == 24) {
 			double x1, y1, x2, y2;
 			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
 			std::cin >> x1 >> y1 >> x2 >> y2;
-			obj[1]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
+			figure.back().first->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
 		else if (value == 25) {
@@ -707,44 +728,59 @@ void renderScene() {
 			std::cin >> x >> y;
 			std::cout << "Enter coefficient Scale: \n";
 			std::cin >> k;
-			obj[1]->Scale(Point(x, y), k);
+			figure.back().first->Scale(Point(x, y), k);
 			value = -1;
 		}
-		
 		else if (value == 26) {
-			std::cout << obj[1]->perimeter() << '\n';
+			std::cout << figure.back().first->perimeter() << '\n';
 			value = -1;
 		}
 		else if (value == 27) {
-			std::cout << obj[1]->area() << '\n';
+			std::cout << figure.back().first->area() << '\n';
 			value = -1;
 		}
 		else if (value == 28) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << (obj[1] == obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << (figure.back().first == figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 29) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << obj[1]->isCongruentTo(*obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << figure.back().first->isCongruentTo(*figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 30) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << obj[1]->isSimilarTo(*obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << figure.back().first->isSimilarTo(*figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 31) {
 			double x, y;
 			std::cout << "Enter x, y \n";
 			std::cin >> x >> y;
-			std::cout << obj[1]->containsPoint(Point(x, y)) << '\n';
+			std::cout << figure.back().first->containsPoint(Point(x, y)) << '\n';
+			value = -1;
 		}
 	}
 	/////////////////////////// CIRCLE ////////////////////////////////////
@@ -756,6 +792,11 @@ void renderScene() {
 		std::cout << "Enter radius: \n";
 		std::cin >> r;
 		Circle* shape_circle = new Circle(Point(x, y), r);
+
+		figure.push_back({ shape_circle, 2 });
+		is_create_circle = true;
+		value = -1;
+
 		obj[2] = shape_circle;
 		is_create_circle = true;
 		value = -1;
@@ -765,8 +806,6 @@ void renderScene() {
 
 	else if (is_create_circle) {
 
-		obj[2]->Draw();
-
 		if (value == 33) {
 			double x, y;
 			std::cout << "Enter rotate coordinate x, y: \n";
@@ -774,21 +813,21 @@ void renderScene() {
 			double angle;
 			std::cout << "Enter Angle: \n";
 			std::cin >> angle;
-			obj[2]->Rotate(Point(x, y), angle);
+			figure.back().first->Rotate(Point(x, y), angle);
 			value = -1;
 		}
 		else if (value == 34) {
 			double x, y;
 			std::cout << "Enter reflex coordinate x, y: \n";
 			std::cin >> x >> y;
-			obj[2]->Reflex(Point(x, y));
+			figure.back().first->Reflex(Point(x, y));
 			value = -1;
 		}
 		else if (value == 35) {
 			double x1, y1, x2, y2;
 			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
 			std::cin >> x1 >> y1 >> x2 >> y2;
-			obj[2]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
+			figure.back().first->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
 		else if (value == 36) {
@@ -797,43 +836,59 @@ void renderScene() {
 			std::cin >> x >> y;
 			std::cout << "Enter coefficient Scale: \n";
 			std::cin >> k;
-			obj[2]->Scale(Point(x, y), k);
+			figure.back().first->Scale(Point(x, y), k);
 			value = -1;
 		}
 		else if (value == 37) {
-			std::cout << obj[2]->perimeter() << '\n';
+			std::cout << figure.back().first->perimeter() << '\n';
 			value = -1;
 		}
 		else if (value == 38) {
-			std::cout << obj[2]->area() << '\n';
+			std::cout << figure.back().first->area() << '\n';
 			value = -1;
 		}
 		else if (value == 39) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << (obj[2] == obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << (figure.back().first == figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 40) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << obj[2]->isCongruentTo(*obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << figure.back().first->isCongruentTo(*figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 41) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << obj[2]->isSimilarTo(*obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << figure.back().first->isSimilarTo(*figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 42) {
 			double x, y;
 			std::cout << "Enter x, y \n";
 			std::cin >> x >> y;
-			std::cout << obj[2]->containsPoint(Point(x, y)) << '\n';
+			std::cout << figure.back().first->containsPoint(Point(x, y)) << '\n';
+			value = -1;
 		}
 	}
 	///////////////////////// RECTANGLE ////////////////////////
@@ -843,17 +898,16 @@ void renderScene() {
 		std::cin >> x1 >> y1;
 		std::cout << "Enter Point (right up): \n";
 		std::cin >> x2 >> y2;
-		Rectangle* shape_rectangle = new Rectangle(Point(x1,y1), Point(x2, y2)); // как удалить?
-		obj[3] = shape_rectangle;
+		Rectangle* shape_rectangle = new Rectangle(Point(x1, y1), Point(x2, y2));
+		figure.push_back({ shape_rectangle, 3 });
 		is_create_rectangle = true;
+
 		value = -1;
-		
+
 		shape_rectangle->Draw();
 	}
 
 	else if (is_create_rectangle) {
-
-		obj[3]->Draw();
 
 		if (value == 44) {
 			double x, y;
@@ -862,21 +916,21 @@ void renderScene() {
 			double angle;
 			std::cout << "Enter Angle: \n";
 			std::cin >> angle;
-			obj[3]->Rotate(Point(x, y), angle);
+			figure.back().first->Rotate(Point(x, y), angle);
 			value = -1;
 		}
 		else if (value == 45) {
 			double x, y;
 			std::cout << "Enter reflex coordinate x, y: \n";
 			std::cin >> x >> y;
-			obj[3]->Reflex(Point(x, y));
+			figure.back().first->Reflex(Point(x, y));
 			value = -1;
 		}
 		else if (value == 46) {
 			double x1, y1, x2, y2;
 			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
 			std::cin >> x1 >> y1 >> x2 >> y2;
-			obj[3]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
+			figure.back().first->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
 		else if (value == 47) {
@@ -885,43 +939,59 @@ void renderScene() {
 			std::cin >> x >> y;
 			std::cout << "Enter coefficient Scale: \n";
 			std::cin >> k;
-			obj[3]->Scale(Point(x, y), k);
+			figure.back().first->Scale(Point(x, y), k);
 			value = -1;
 		}
 		else if (value == 48) {
-			std::cout << obj[3]->perimeter() << '\n';
+			std::cout << figure.back().first->perimeter() << '\n';
 			value = -1;
 		}
 		else if (value == 49) {
-			std::cout << obj[3]->area() << '\n';
+			std::cout << figure.back().first->area() << '\n';
 			value = -1;
 		}
 		else if (value == 50) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << (obj[3] == obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << (figure.back().first == figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 51) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << obj[3]->isCongruentTo(*obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << figure.back().first->isCongruentTo(*figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 52) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << obj[3]->isSimilarTo(*obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << figure.back().first->isSimilarTo(*figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 53) {
 			double x, y;
 			std::cout << "Enter x, y \n";
 			std::cin >> x >> y;
-			std::cout << obj[3]->containsPoint(Point(x, y)) << '\n';
+			std::cout << figure.back().first->containsPoint(Point(x, y)) << '\n';
+			value = -1;
 		}
 	}
 	///////////////////////// SQUARE ////////////////////////////
@@ -933,7 +1003,7 @@ void renderScene() {
 		std::cout << "Enter Point (right up): \n";
 		std::cin >> x2 >> y2;
 		Square* shape_square = new Square(Point(x1, y1), Point(x2, y2));
-		obj[4] = shape_square;
+		figure.push_back({ shape_square, 4 });
 		is_create_square = true;
 		value = -1;
 
@@ -942,8 +1012,6 @@ void renderScene() {
 
 	else if (is_create_square) {
 
-		obj[4]->Draw();
-
 		if (value == 55) {
 			double x, y;
 			std::cout << "Enter rotate coordinate x, y: \n";
@@ -951,21 +1019,21 @@ void renderScene() {
 			double angle;
 			std::cout << "Enter Angle: \n";
 			std::cin >> angle;
-			obj[4]->Rotate(Point(x, y), angle);
+			figure.back().first->Rotate(Point(x, y), angle);
 			value = -1;
 		}
 		else if (value == 56) {
 			double x, y;
 			std::cout << "Enter reflex coordinate x, y: \n";
 			std::cin >> x >> y;
-			obj[4]->Reflex(Point(x, y));
+			figure.back().first->Reflex(Point(x, y));
 			value = -1;
 		}
 		else if (value == 57) {
 			double x1, y1, x2, y2;
 			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
 			std::cin >> x1 >> y1 >> x2 >> y2;
-			obj[4]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
+			figure.back().first->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
 		else if (value == 58) {
@@ -974,43 +1042,59 @@ void renderScene() {
 			std::cin >> x >> y;
 			std::cout << "Enter coefficient Scale: \n";
 			std::cin >> k;
-			obj[4]->Scale(Point(x, y), k);
+			figure.back().first->Scale(Point(x, y), k);
 			value = -1;
 		}
 		else if (value == 59) {
-			std::cout << obj[4]->perimeter() << '\n';
+			std::cout << figure.back().first->perimeter() << '\n';
 			value = -1;
 		}
 		else if (value == 60) {
-			std::cout << obj[4]->area() << '\n';
+			std::cout << figure.back().first->area() << '\n';
 			value = -1;
 		}
 		else if (value == 61) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << (obj[4] == obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << (figure.back().first == figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 62) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << obj[4]->isCongruentTo(*obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << figure.back().first->isCongruentTo(*figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 63) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << obj[4]->isSimilarTo(*obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << figure.back().first->isSimilarTo(*figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 64) {
 			double x, y;
 			std::cout << "Enter x, y \n";
 			std::cin >> x >> y;
-			std::cout << obj[4]->containsPoint(Point(x, y)) << '\n';
+			std::cout << figure.back().first->containsPoint(Point(x, y)) << '\n';
+			value = -1;
 		}
 	}
 	////////////////////////// TRIANGLE //////////////////////
@@ -1024,16 +1108,15 @@ void renderScene() {
 		std::cout << "Enter Point (right): \n";
 		std::cin >> x3 >> y3;
 		Triangle* shape_triangle = new Triangle(Point(x1, y1), Point(x2, y2), Point(x3, y3)); // как удалить?
-		obj[5] = shape_triangle;
+		figure.push_back({ shape_triangle, 5 });
 		is_create_triangle = true;
+
 		value = -1;
 
 		shape_triangle->Draw();
 	}
 
 	else if (is_create_triangle) {
-
-		obj[5]->Draw();
 
 		if (value == 66) {
 			double x, y;
@@ -1042,21 +1125,21 @@ void renderScene() {
 			double angle;
 			std::cout << "Enter Angle: \n";
 			std::cin >> angle;
-			obj[5]->Rotate(Point(x, y), angle);
+			figure.back().first->Rotate(Point(x, y), angle);
 			value = -1;
 		}
 		else if (value == 67) {
 			double x, y;
 			std::cout << "Enter reflex coordinate x, y: \n";
 			std::cin >> x >> y;
-			obj[5]->Reflex(Point(x, y));
+			figure.back().first->Reflex(Point(x, y));
 			value = -1;
 		}
 		else if (value == 68) {
 			double x1, y1, x2, y2;
 			std::cout << "Enter Points of Line: x1, y1 and x2, y2: \n";
 			std::cin >> x1 >> y1 >> x2 >> y2;
-			obj[5]->Reflex(Line(Point(x1, y1), Point(x2, y2)));
+			figure.back().first->Reflex(Line(Point(x1, y1), Point(x2, y2)));
 			value = -1;
 		}
 		else if (value == 69) {
@@ -1065,47 +1148,64 @@ void renderScene() {
 			std::cin >> x >> y;
 			std::cout << "Enter coefficient Scale: \n";
 			std::cin >> k;
-			obj[5]->Scale(Point(x, y), k);
+			figure.back().first->Scale(Point(x, y), k);
 			value = -1;
 		}
 		else if (value == 70) {
-			std::cout << obj[5]->perimeter() << '\n';
+			std::cout << figure.back().first->perimeter() << '\n';
 			value = -1;
 		}
 		else if (value == 71) {
-			std::cout << obj[5]->area() << '\n';
+			std::cout << figure.back().first->area() << '\n';
 			value = -1;
 		}
 		else if (value == 72) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << (obj[5] == obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << (figure.back().first == figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 73) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << obj[5]->isCongruentTo(*obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << figure.back().first->isCongruentTo(*figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 74) {
 			int num;
 			std::cout << "0 - Polygone \n 1 - Ellypse \n 2 - Circle \n 3 - Rectangle \n 4 - Square \n 5 - Triangle \n";
 			std::cin >> num;
-			std::cout << obj[5]->isSimilarTo(*obj[num]) << '\n';
+			for (int i = 0; i < figure.size(); ++i) {
+				if (figure[i].second == num) {
+					std::cout << figure.back().first->isSimilarTo(*figure[num].first) << "figure num  - " << num << '\n';
+				}
+			}
+
 			value = -1;
 		}
 		else if (value == 75) {
 			double x, y;
 			std::cout << "Enter x, y \n";
 			std::cin >> x >> y;
-			std::cout << obj[5]->containsPoint(Point(x, y)) << '\n';
+			std::cout << figure.back().first->containsPoint(Point(x, y)) << '\n';
+			value = -1;
 		}
 	}
 	glutSwapBuffers();
 }
+
 ///////////////////////// MENU /////////////////////
 void menu(int num) {
 	if (num == 0) {
